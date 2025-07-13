@@ -2,9 +2,9 @@ name: Build and/or Release Flatpak
 
 on:
   push:
-    branches: [main]  # Trigger on pushes to main branch
+    branches: ['**']  # Trigger on all branch pushes (including website commits)
     tags:
-      - '*'  # Also trigger on tag pushes
+      - '*'  # Also trigger on tag pushes (e.g., v1.0.0)
   pull_request:  # Trigger on pull requests
   release:
     types: [created]  # Trigger on manual release creation
