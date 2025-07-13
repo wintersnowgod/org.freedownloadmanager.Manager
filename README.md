@@ -1,7 +1,11 @@
 # org.freedownloadmanager.Manager
-
-## Not work
-
-### Browser Integration
-
-The native FDM app gets read from installed browsers in a special way, which doesn't work in flatpak, it's not a permissions issue but how the app itself is built, this can only be fixed by the development team from FDM
+  
+### Building Instructions:-  
+```
+git clone https://github.com/wintersnowgod/org.freedownloadmanager.Manager.git
+cd org.freedownloadmanager.Manager
+flatpak-builder --install-deps-from=flathub --force-clean --repo=.repo .build-dir org.freedownloadmanager.Manager.yaml
+flatpak build-bundle .repo org.freedownloadmanager.Manager.flatpak org.freedownloadmanager.Manager --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+```
+### Downloads
+.flatpak bundle is available in releases for download.
