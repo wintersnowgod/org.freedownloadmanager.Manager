@@ -19,13 +19,23 @@ jobs:
     - name: Generate changelog
       id: changelog
       run: |
-        PREV_TAG=$(git tag --sort=-creatordate | sed -n 2p)
-          CURR_TAG=$(git describe --tags)
-          echo "Comparing $PREV_TAG..$CURR_TAG"
-          LOG=$(git log "$PREV_TAG..$CURR_TAG" --reverse --pretty=format:"- %s")
-          echo "LOG<<EOF" >> $GITHUB_OUTPUT
-          echo "$LOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+        # Get all tags sorted by date
+        TAGS=$(git tag --sort=-creatordate)
+        # Get current tag
+        CURR_TAG=$(git describe --tags)
+        
+        # Check if this is the first tag
+        if [ $(echo "$TAGS" | wc -l) -eq 1 ]; then
+          LOG=$(git log --reverse --pretty=format:"- %s (%h)")
+        else
+          PREV_TAG=$(echo "$TAGS" | sed -n 2p)
+          LOG=$(git log "$PREV_TAG..$CURR_TAG" --reverse --pretty=format:"- %s (%h)")
+        fi
+        
+        # Output the changelog
+        echo "LOG<<EOF" >> $GITHUB_OUTPUT
+        echo "$LOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Install Flatpak and dependencies
       run: |
