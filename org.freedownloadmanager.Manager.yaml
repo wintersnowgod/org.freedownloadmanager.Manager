@@ -1,57 +1,87 @@
 app-id: org.freedownloadmanager.Manager
 runtime: org.freedesktop.Platform
-runtime-version: '21.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 add-extensions:
   org.freedesktop.Platform.ffmpeg-full:
     directory: lib/ffmpeg
-    version: '21.08'
+    version: '24.08'
     add-ld-path: .
 command: fdm
 tags:
   - proprietary
 finish-args:
   - --socket=x11
+  - --socket=wayland
+  - --socket=fallback-x11
   - --share=ipc
   - --share=network
   - --device=dri
+  - --talk-name=org.kde.StatusNotifierWatcher
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=com.canonical.AppMenu.Registrar
   - --talk-name=com.canonical.indicator.application
   - --talk-name=com.canonical.Unity.LauncherEntry
   - --filesystem=xdg-download
 modules:
-  - name: boost
+  - name: bubblewrap
     buildsystem: simple
     build-commands:
-      - ./bootstrap.sh --prefix=/app --with-libraries=headers
-      - ./b2 install variant=release link=shared runtime-link=shared cxxflags="$CXXFLAGS"
-        linkflags="$LDFLAGS" -j $FLATPAK_BUILDER_N_JOBS
+      - tar -xf bubblewrap.pkg.tar.zst
+      - cp -rv ./usr/* /app
     sources:
-      - type: archive
-        url: https://archives.boost.io/release/1.79.0/source/boost_1_79_0.tar.bz2
-        sha256: 475d589d51a7f8b3ba2ba4eda022b170e562ca3b760ee922c146b6c65856ef39
+      - type: file
+        url: https://archive.archlinux.org/packages/b/bubblewrap/bubblewrap-0.9.0-1-x86_64.pkg.tar.zst
+        sha256: 2200c96efe46a6f78f85d55d0f4da03b4627dbb8635750b5be1194f073c7
+        dest-filename: bubblewrap.pkg.tar.zst
 
+  - name: krb5
+    buildsystem: simple
+    build-commands:
+      - tar -xf krb5.pkg.tar.zst
+      - cp -rv ./usr/* /app
+      - mkdir -p /app/etc
+      - cp -rv ./etc/* /app/etc
+      - mkdir -p /app/var
+      - cp -rv ./var/* /app/var
+    sources:
+      - type: file
+        url: https://archive.archlinux.org/packages/k/krb5/krb5-1.21.3-2-x86_64.pkg.tar.zst
+        sha256: 3144390d52f29bb5204cdf1bee1675c3c31adcfb301fbb0f88a1ce03de3944c0
+        dest-filename: krb5.pkg.tar.zst
 
+  - name: keyutils
+    buildsystem: simple
+    build-commands:
+      - tar -xf keyutils.pkg.tar.zst
+      - cp -rv ./usr/* /app
+      - mkdir -p /app/etc
+      - cp -rv ./etc/* /app/etc
+    sources:
+      - type: file
+        url: https://archive.archlinux.org/packages/k/keyutils/keyutils-1.6.3-3-x86_64.pkg.tar.zst
+        sha256: 8d61c8798ed6383280da2abc067d3f29e9cf2d1d60b57a705e62e8bd9ab89f69
+        dest-filename: keyutils.pkg.tar.zst
 
   - name: libtorrent
-    buildsystem: cmake-ninja
-    builddir: true
-    config-opts:
-      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    buildsystem: simple
+    build-commands:
+      - tar -xf libtorrent-rasterbar.pkg.tar.zst
+      - cp -rv ./usr/* /app
     sources:
-      - type: archive
-        url: https://github.com/arvidn/libtorrent/releases/download/v2.0.6/libtorrent-rasterbar-2.0.6.tar.gz
-        sha256: 438e29272ff41ccc68ec7530f1b98d639f6d01ec8bf680766336ae202a065722
-
-    cleanup:
-      - /include
+      - type: file
+        url: https://archive.archlinux.org/packages/l/libtorrent-rasterbar/libtorrent-rasterbar-1%3A2.0.11-4-x86_64.pkg.tar.zst
+        sha256: 57e686cd14f00430390075a5b9fb10d6e62de492362b97587f6db14a36066e55
+        dest-filename: libtorrent-rasterbar.pkg.tar.zst
 
   - name: fdm
     buildsystem: simple
     build-commands:
-      - mkdir -p /app/lib
-      - install -Dm 755 apply_extra.sh /app/bin/apply_extra
+      - mkdir -p /app/lib/ffmpeg #app doesnot launch without this
+      - ar x freedownloadmanager.deb data.tar.xz
+      - rm freedownloadmanager.deb
+      - tar -xf data.tar.xz -C /app ./opt
+      - rm data.tar.xz
       - install -Dm 644 -t /app/share/metainfo org.freedownloadmanager.Manager.metainfo.xml
       - install -Dm 644 -t /app/share/applications org.freedownloadmanager.Manager.desktop
       - |
@@ -59,15 +89,8 @@ modules:
           install -Dm 644 org.freedownloadmanager.Manager-$icon.png /app/share/icons/hicolor/${icon}x${icon}/apps/org.freedownloadmanager.Manager.png
         done
       - install -Dm 755 fdm.sh /app/bin/fdm
-      - install -d /app/lib/ffmpeg
-      # For extra-data to be able to extract the .deb
-      - install -Dm 755 /{usr,app}/bin/ar
-      - cp /usr/lib/$(gcc --print-multiarch)/libbfd-*.so /app/lib
 
     sources:
-      - type: file
-        path: apply_extra.sh
-
       - type: file
         path: fdm.sh
 
@@ -79,12 +102,12 @@ modules:
 
       - type: file
         path: icons/org.freedownloadmanager.Manager-128.png
+
       - type: file
         path: icons/org.freedownloadmanager.Manager-256.png
 
-      - type: extra-data
-        url: https://dn3.freedownloadmanager.org/6/latest/freedownloadmanager.deb
-        sha256: 164a11bc5ff634e74f902c6334d159f608cdf45c037a0a3497dd1236bbd346c5
-        filename: freedownloadmanager.deb
-        size: 40855092
+      - type: file
+        url: https://debrepo.freedownloadmanager.org/pool/main/f/freedownloadmanager/freedownloadmanager_6.28.0.6294_amd64.deb
+        sha256: fe45b1821ccb0aefbd5319599913d952a88ab89cbba5545ab227bf483e691b20
+        dest-filename: freedownloadmanager.deb
         only-arches: [x86_64]
