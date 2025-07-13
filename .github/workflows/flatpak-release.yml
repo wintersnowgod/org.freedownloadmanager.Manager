@@ -1,0 +1,69 @@
+name: Build and Release Flatpak
+
+on:
+  push:
+    tags:
+      - '*'  # Trigger on tag pushes (e.g., v1.0.0)
+  release:
+    types: [created]  # Trigger on manual release creation
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Needed to get full git history for changelog
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 ${{ github.ref_name }}^ 2>/dev/null || echo "")
+
+        if [ -z "$PREV_TAG" ]; then
+          # If no previous tag, get all commits
+          LOG=$(git log --pretty=format:"- %s (%h)")
+        else
+          # Get commits since last tag
+          LOG=$(git log --pretty=format:"- %s (%h)" $PREV_TAG..${{ github.ref_name }})
+        fi
+
+        # Escape newlines for GitHub Actions output
+        LOG="${LOG//'%'/'%25'}"
+        LOG="${LOG//$'\n'/'%0A'}"
+        LOG="${LOG//$'\r'/'%0D'}"
+
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$LOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Install Flatpak and dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y flatpak flatpak-builder
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+    - name: Build Flatpak
+      run: |
+        flatpak-builder --user --install-deps-from=flathub --force-clean --repo=.repo .build-dir org.freedownloadmanager.Manager.yaml
+        flatpak build-bundle .repo org.freedownloadmanager.Manager.flatpak org.freedownloadmanager.Manager --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+
+    - name: Upload Flatpak bundle as artifact (for debugging)
+      uses: actions/upload-artifact@v4
+      with:
+        name: freedownloadmanager-flatpak
+        path: org.freedownloadmanager.Manager.flatpak
+
+    - name: Create or Update Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: org.freedownloadmanager.Manager.flatpak
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          Changes since last release:
+          ${{ steps.changelog.outputs.changelog }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
