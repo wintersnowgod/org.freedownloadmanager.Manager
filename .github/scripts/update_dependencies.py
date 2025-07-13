@@ -7,6 +7,7 @@ import sys
 import os
 from pathlib import Path
 from urllib.parse import unquote
+from datetime import datetime
 
 PACKAGES = {
     'bubblewrap': 'https://archive.archlinux.org/packages/b/bubblewrap/',
@@ -65,7 +66,9 @@ def get_latest_pkg(package_name, base_url):
         if not versions:
             return None
 
+        # Fixed this line - properly closed all parentheses
         versions.sort(key=lambda x: tuple(map(int, x[0].replace(':', '.').replace('-', '.').split('.'))))
+
         latest_ver, latest_file = versions[-1]
         pkg_url = f"{base_url}{latest_file}"
 
@@ -91,8 +94,55 @@ def get_latest_pkg(package_name, base_url):
         print(f"Error processing {package_name}: {str(e)}")
         return None
 
+def update_metainfo(version):
+    """Update the metainfo.xml file with new release information while preserving formatting"""
+    metainfo_path = Path('org.freedownloadmanager.Manager.metainfo.xml')
+    
+    try:
+        with open(metainfo_path, 'r') as f:
+            lines = f.readlines()
+
+        new_lines = []
+        in_releases = False
+        version_exists = False
+        today = datetime.now().strftime('%Y-%m-%d')
+        new_release_line = f'    <release version="{version}" date="{today}"/>\n'
+
+        for line in lines:
+            if '<releases>' in line:
+                in_releases = True
+                new_lines.append(line)
+                # Add our new release right after the opening tag
+                new_lines.append(new_release_line)
+                continue
+            elif '</releases>' in line:
+                in_releases = False
+                new_lines.append(line)
+                continue
+            elif in_releases and version in line:
+                version_exists = True
+                break
+            
+            new_lines.append(line)
+
+        if version_exists:
+            print(f"Version {version} already exists in metainfo.xml")
+            return False
+
+        # Write back to file with exact same formatting
+        with open(metainfo_path, 'w') as f:
+            f.writelines(new_lines)
+        
+        print(f"Updated metainfo.xml with new version {version}")
+        return True
+        
+    except Exception as e:
+        print(f"Error updating metainfo.xml: {str(e)}")
+        return False
+
 def update_manifest(manifest_path):
     changes = []
+    metainfo_updated = False
 
     # Read the original file to preserve formatting
     with open(manifest_path, 'r') as f:
@@ -132,6 +182,10 @@ def update_manifest(manifest_path):
                             # Update the URL line
                             new_url = latest_info['url']
                             new_lines.append(line.replace(current_url, new_url))
+                            
+                            # If this is FDM, update the metainfo.xml
+                            if pkg_name == 'freedownloadmanager':
+                                metainfo_updated = update_metainfo(latest_info['version'])
                             continue
 
             if 'sha256:' in line and latest_info:
@@ -143,7 +197,7 @@ def update_manifest(manifest_path):
         # Keep the original line if no changes needed
         new_lines.append(line)
 
-    if changes:
+    if changes or metainfo_updated:
         # Write back the modified file with original formatting
         with open(manifest_path, 'w') as f:
             f.writelines(new_lines)
