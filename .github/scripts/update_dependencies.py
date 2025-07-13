@@ -21,25 +21,54 @@ def parse_version(pkg_name, filename):
     """Properly parse versions for all package types"""
     filename = unquote(filename)
     if pkg_name == 'freedownloadmanager':
-        return filename.split('_')[1]
+        return filename.split('_')[1].split('_amd64.deb')[0]
     elif pkg_name == 'libtorrent-rasterbar':
         parts = filename.split('-')
-        return f"{parts[2]}-{parts[3]}"
+        return f"{parts[2]}-{parts[3].replace('.pkg.tar.zst', '')}"
     else:
         parts = filename.split('-')
-        return f"{parts[1]}-{parts[2]}"
+        return f"{parts[1]}-{parts[2].replace('.pkg.tar.zst', '')}"
+
+def normalize_version(ver):
+    """Normalize version string to comparable tuple (moved outside compare_versions)"""
+    # Handle epoch (e.g., "1:2.0.11-4" -> epoch=1, rest="2.0.11-4")
+    if ':' in ver:
+        epoch, ver_part = ver.split(':', 1)
+        epoch = int(epoch)
+    else:
+        epoch = 0
+        ver_part = ver
+    
+    # Split version and release (e.g., "2.0.11-4" -> version="2.0.11", rel="4")
+    if '-' in ver_part:
+        version, rel = ver_part.split('-', 1)
+    else:
+        version = ver_part
+        rel = '0'
+    
+    # Split version components (e.g., "2.0.11" -> [2, 0, 11])
+    version_parts = []
+    for part in version.split('.'):
+        if part.isdigit():
+            version_parts.append(int(part))
+        else:
+            version_parts.append(0)
+    
+    # Split release components (e.g., "4" -> [4])
+    rel_parts = []
+    for part in rel.split('.'):
+        if part.isdigit():
+            rel_parts.append(int(part))
+        else:
+            rel_parts.append(0)
+    
+    return (epoch, *version_parts, *rel_parts)
 
 def compare_versions(current, latest):
     """Compare versions including pkgrel, handling epochs"""
-    def normalize(ver):
-        ver_part, rel_part = ver.split('-') if '-' in ver else (ver, '0')
-        if ':' in ver_part:
-            epoch, ver_part = ver_part.split(':')
-        else:
-            epoch = '0'
-        return tuple(map(int, epoch.split('.'))) + tuple(map(int, ver_part.split('.'))) + (int(rel_part),)
-
-    return normalize(current) >= normalize(latest)
+    current_norm = normalize_version(current)
+    latest_norm = normalize_version(latest)
+    return current_norm >= latest_norm
 
 def get_latest_pkg(package_name, base_url):
     """Get latest package version and SHA256"""
@@ -60,14 +89,18 @@ def get_latest_pkg(package_name, base_url):
 
         versions = []
         for file, _ in matches:
-            ver = parse_version(package_name, file)
-            versions.append((ver, file))
+            try:
+                ver = parse_version(package_name, file)
+                versions.append((ver, file))
+            except Exception as e:
+                print(f"Error parsing version from {file}: {e}")
+                continue
 
         if not versions:
             return None
 
-        # Fixed this line - properly closed all parentheses
-        versions.sort(key=lambda x: tuple(map(int, x[0].replace(':', '.').replace('-', '.').split('.'))))
+        # Sort versions using our normalization function
+        versions.sort(key=lambda x: normalize_version(x[0]))
 
         latest_ver, latest_file = versions[-1]
         pkg_url = f"{base_url}{latest_file}"
