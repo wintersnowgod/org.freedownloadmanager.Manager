@@ -19,25 +19,13 @@ jobs:
     - name: Generate changelog
       id: changelog
       run: |
-        # Get the previous tag
-        PREV_TAG=$(git describe --tags --abbrev=0 ${{ github.ref_name }}^ 2>/dev/null || echo "")
-
-        if [ -z "$PREV_TAG" ]; then
-          # If no previous tag, get all commits
-          LOG=$(git log --pretty=format:"- %s (%h)")
-        else
-          # Get commits since last tag
-          LOG=$(git log --pretty=format:"- %s (%h)" $PREV_TAG..${{ github.ref_name }})
-        fi
-
-        # Escape newlines for GitHub Actions output
-        LOG="${LOG//'%'/'%25'}"
-        LOG="${LOG//$'\n'/'%0A'}"
-        LOG="${LOG//$'\r'/'%0D'}"
-
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
-        echo "$LOG" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        PREV_TAG=$(git tag --sort=-creatordate | sed -n 2p)
+          CURR_TAG=$(git describe --tags)
+          echo "Comparing $PREV_TAG..$CURR_TAG"
+          LOG=$(git log "$PREV_TAG..$CURR_TAG" --reverse --pretty=format:"- %s")
+          echo "LOG<<EOF" >> $GITHUB_OUTPUT
+          echo "$LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Install Flatpak and dependencies
       run: |
@@ -64,6 +52,6 @@ jobs:
         name: Release ${{ github.ref_name }}
         body: |
           Changes since last release:
-          ${{ steps.changelog.outputs.changelog }}
+          ${{ steps.changelog.outputs.LOG }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
