@@ -70,8 +70,8 @@ modules:
       - cp -rv ./usr/* /app
     sources:
       - type: file
-        url: https://archive.archlinux.org/packages/l/libtorrent-rasterbar/libtorrent-rasterbar-1%3A2.0.11-5-x86_64.pkg.tar.zst
-        sha256: cf5a5163dc9e7e4db724902c5bc83023ac8545387d06b9911f06d83f2b9422ec
+        url: https://archive.archlinux.org/packages/l/libtorrent-rasterbar/libtorrent-rasterbar-1%3A2.0.11-7-x86_64.pkg.tar.zst
+        sha256: 46bc92667b97b12e25af9d05a0d5031e54c7dbf9f5addd69629889247ef7f71a
         dest-filename: libtorrent-rasterbar.pkg.tar.zst
 
   - name: fdm
