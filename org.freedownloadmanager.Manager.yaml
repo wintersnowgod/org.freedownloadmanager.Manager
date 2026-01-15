@@ -107,7 +107,7 @@ modules:
         path: icons/org.freedownloadmanager.Manager-256.png
 
       - type: file
-        url: https://debrepo.freedownloadmanager.org/pool/main/f/freedownloadmanager/freedownloadmanager_6.31.0.6549_amd64.deb
-        sha256: c659566a42715c4957275d2f9b2c17b6b73f1be38eec900bfbe31243363b7a09
+        url: https://debrepo.freedownloadmanager.org/pool/main/f/freedownloadmanager/freedownloadmanager_6.32.0.6586_amd64.deb
+        sha256: 5f0506b442a5f670a93f08848c1c9b907d4e2a17262dcdd16ce07f7bd61c8c93
         dest-filename: freedownloadmanager.deb
         only-arches: [x86_64]
