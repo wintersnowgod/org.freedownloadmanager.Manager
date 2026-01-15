@@ -25,6 +25,9 @@ jobs:
     - name: Build Flatpak
       run: |
         flatpak-builder --user --install-deps-from=flathub --force-clean --repo=.repo .build-dir org.freedownloadmanager.Manager.yaml
+    
+    - name: Bundle Flatpak
+      run: |
         flatpak build-bundle .repo org.freedownloadmanager.Manager.flatpak org.freedownloadmanager.Manager --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
 
     - name: Upload Flatpak bundle as artifact
