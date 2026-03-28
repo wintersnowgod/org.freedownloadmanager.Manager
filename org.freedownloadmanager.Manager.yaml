@@ -31,8 +31,8 @@ modules:
       - cp -rv ./usr/* /app
     sources:
       - type: file
-        url: https://archive.archlinux.org/packages/b/bubblewrap/bubblewrap-0.11.0-1-x86_64.pkg.tar.zst
-        sha256: 2200c96efe46a6f78f85d55d0f4da03b4627dbb8635750b5be1194f073c78934
+        url: https://archive.archlinux.org/packages/b/bubblewrap/bubblewrap-0.11.1-1-x86_64.pkg.tar.zst
+        sha256: 289f9ec7f7aa545020861de2718009680dec4e2c184a85f1fee0c3ec89378534
         dest-filename: bubblewrap.pkg.tar.zst
 
   - name: krb5
@@ -70,8 +70,8 @@ modules:
       - cp -rv ./usr/* /app
     sources:
       - type: file
-        url: https://archive.archlinux.org/packages/l/libtorrent-rasterbar/libtorrent-rasterbar-1%3A2.0.11-8-x86_64.pkg.tar.zst
-        sha256: 1fe1c9525dac23b64df90eeb08d7651737d344e01b3e88e4aa89319d4d666e84
+        url: https://archive.archlinux.org/packages/l/libtorrent-rasterbar/libtorrent-rasterbar-1%3A2.0.12-2-x86_64.pkg.tar.zst
+        sha256: 6d77c886019654e167abbef0393ea152fc53d05c9774d59818acca49f4e60b34
         dest-filename: libtorrent-rasterbar.pkg.tar.zst
 
   - name: fdm
@@ -107,7 +107,7 @@ modules:
         path: icons/org.freedownloadmanager.Manager-256.png
 
       - type: file
-        url: https://debrepo.freedownloadmanager.org/pool/main/f/freedownloadmanager/freedownloadmanager_6.33.1.6648_amd64.deb
-        sha256: 862b7d46447f8057d4e16273ee5764a60dedb1def638aaebb59d717823acd772
+        url: https://debrepo.freedownloadmanager.org/pool/main/f/freedownloadmanager/freedownloadmanager_6.33.2.6656_amd64.deb
+        sha256: 9f563a87dc577aa53a2ceea1ebaaa59d3f70b23158a93a1a00f27cb1360bf468
         dest-filename: freedownloadmanager.deb
         only-arches: [x86_64]
